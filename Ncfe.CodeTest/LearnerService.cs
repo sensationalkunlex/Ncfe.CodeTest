@@ -30,30 +30,36 @@ namespace Ncfe.CodeTest
 
         public Learner GetLearner(int learnerId, bool isLearnerArchived)
         {
-           
-            if (isLearnerArchived)
+            try
             {
-                return _archivedDataService.GetArchivedLearner(learnerId);
-            }
-            else
-            {   
-                var failoverEntries = _failoverRepository.GetFailOverEntries();
-                LearnerResponse learnerResponse = null;
-               
-                if (_failoverReview.DetermineFailover(failoverEntries))
+
+                if (isLearnerArchived)
                 {
-                    learnerResponse = _failoverLearnerDataAccess.GetLearnerById(learnerId);
+                    return _archivedDataService.GetArchivedLearner(learnerId);
                 }
                 else
                 {
-                    learnerResponse = _learnerDataAccess.LoadLearner(learnerId);
+                    var failoverEntries = _failoverRepository.GetFailOverEntries();
+                    LearnerResponse learnerResponse = null;
+
+                    if (_failoverReview.DetermineFailover(failoverEntries))
+                    {
+                        learnerResponse = _failoverLearnerDataAccess.GetLearnerById(learnerId);
+                    }
+                    else
+                    {
+                        learnerResponse = _learnerDataAccess.LoadLearner(learnerId);
+                    }
+
+                    var result = learnerResponse.IsArchived ?
+                        _archivedDataService.GetArchivedLearner(learnerId)
+                        : learnerResponse.Learner;
+
+                    return result;
                 }
-
-                var result = learnerResponse.IsArchived? 
-                    _archivedDataService.GetArchivedLearner(learnerId)
-                    :learnerResponse.Learner;
-
-                return result;
+            } 
+            catch (Exception ex) {
+                throw ex;
             }
         }
   
