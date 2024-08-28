@@ -51,26 +51,27 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ArchivedDataService.cs" />
-    <Compile Include="FailoverReview.cs" />
-    <Compile Include="FailoverEntry.cs" />
-    <Compile Include="FailoverLearnerDataAccess.cs" />
-    <Compile Include="FailoverRepository.cs" />
-    <Compile Include="IArchivedDataService.cs" />
-    <Compile Include="IFailoverLearnerDataAccess.cs" />
-    <Compile Include="IFailoverRepository.cs" />
-    <Compile Include="IFailoverReview.cs" />
-    <Compile Include="ILearnerDataAccess.cs" />
-    <Compile Include="ILearnerService.cs" />
-    <Compile Include="Learner.cs" />
-    <Compile Include="LearnerDataAccess.cs" />
-    <Compile Include="LearnerResponse.cs" />
-    <Compile Include="LearnerService.cs" />
+    <Compile Include="IOC\UnityConfiguration.cs" />
+    <Compile Include="Services\ArchivedDataService.cs" />
+    <Compile Include="Services\FailoverReviewService.cs" />
+    <Compile Include="Entries\FailoverEntry.cs" />
+    <Compile Include="DataAccess\FailoverLearnerDataAccess.cs" />
+    <Compile Include="Repositories\FailoverRepository.cs" />
+    <Compile Include="Interfaces\IArchivedDataService.cs" />
+    <Compile Include="Interfaces\IFailoverRepository.cs" />
+    <Compile Include="Interfaces\IFailoverReviewService.cs" />
+    <Compile Include="Interfaces\ILearnerDataAccess.cs" />
+    <Compile Include="Interfaces\ILearnerService.cs" />
+    <Compile Include="Entries\Learner.cs" />
+    <Compile Include="DataAccess\LearnerDataAccess.cs" />
+    <Compile Include="Entries\LearnerResponse.cs" />
+    <Compile Include="Services\LearnerService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
