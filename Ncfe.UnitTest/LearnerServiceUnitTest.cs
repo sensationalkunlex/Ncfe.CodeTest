@@ -13,18 +13,11 @@ namespace Ncfe.UnitTest
     [TestClass]
     public class LearnerServiceUnitTest
     {
-        public LearnerServiceUnitTest()
-        {
-            //
-            // TODO: Add constructor logic here
-            //
-        }
 
         private Mock<IArchivedDataService> _archivedDataServiceMockService;
         private Mock<ILearnerDataAccess> _learnerDataAccessMockService;
-        private Mock<IFailoverLearnerDataAccess> _failoverLearnerDataAccessMockService;
         private Mock<IFailoverRepository> _failoverRepositoryMockService;
-        private Mock<IFailoverReview> _failoverReviewMockService;
+        private Mock<IFailoverReviewService> _failoverReviewMockService;
         private LearnerService _learnerService;
 
         [TestInitialize]
@@ -32,14 +25,12 @@ namespace Ncfe.UnitTest
         {
             _archivedDataServiceMockService = new Mock<IArchivedDataService>();
             _learnerDataAccessMockService = new Mock<ILearnerDataAccess>();
-            _failoverLearnerDataAccessMockService = new Mock<IFailoverLearnerDataAccess>();
             _failoverRepositoryMockService = new Mock<IFailoverRepository>();
-            _failoverReviewMockService = new Mock<IFailoverReview>();
+            _failoverReviewMockService = new Mock<IFailoverReviewService>();
 
             _learnerService = new LearnerService(
                 _archivedDataServiceMockService.Object,
                 _learnerDataAccessMockService.Object,
-                _failoverLearnerDataAccessMockService.Object,
                 _failoverRepositoryMockService.Object,
                 _failoverReviewMockService.Object
             );
@@ -112,4 +103,116 @@ namespace Ncfe.UnitTest
             Assert.AreEqual(expectedResult, result);
         }
     }
+}
+public class LearnerServiceTests
+{
+    private readonly Mock<IArchivedDataService> _mockArchivedDataService;
+    private readonly Mock<ILearnerDataAccess> _mockLearnerDataAccess;
+    private readonly Mock<IFailoverRepository> _mockFailoverRepository;
+    private readonly Mock<IFailoverReviewService> _mockFailoverReviewService;
+    private readonly LearnerService _learnerService;
+
+    public LearnerServiceTests()
+    {
+        // Arrange: Create mock objects for dependencies
+        _mockArchivedDataService = new Mock<IArchivedDataService>();
+        _mockLearnerDataAccess = new Mock<ILearnerDataAccess>();
+        _mockFailoverRepository = new Mock<IFailoverRepository>();
+        _mockFailoverReviewService = new Mock<IFailoverReviewService>();
+
+        // Arrange: Initialize the service with the mocked dependencies
+        _learnerService = new LearnerService(
+            _mockArchivedDataService.Object,
+            _mockLearnerDataAccess.Object,
+            _mockFailoverRepository.Object,
+            _mockFailoverReviewService.Object
+        );
+    }
+
+    [Fact]
+    public void GetLearner_ShouldReturnArchivedLearner_WhenIsLearnerArchivedIsTrue()
+    {
+        // Arrange
+        int learnerId = 1;
+        var archivedLearner = new Learner();
+        _mockArchivedDataService
+            .Setup(s => s.GetArchivedLearner(learnerId))
+            .Returns(archivedLearner);
+
+        // Act
+        var result = _learnerService.GetLearner(learnerId, isLearnerArchived: true);
+
+        // Assert
+        Assert.Equal(archivedLearner, result);
+        _mockArchivedDataService.Verify(s => s.GetArchivedLearner(learnerId), Times.Once);
+    }
+
+    [Fact]
+    public void GetLearner_ShouldReturnActiveLearner_WhenIsLearnerArchivedIsFalseAndFailoverIsNotTriggered()
+    {
+        // Arrange
+        int learnerId = 1;
+        var learnerResponse = new LearnerResponse { IsArchived = false, Learner = new Learner() };
+        _mockFailoverRepository.Setup(r => r.GetFailOverEntries()).Returns(new List<FailoverEntry>());
+        _mockFailoverReviewService.Setup(s => s.DetermineFailover(It.IsAny<List<FailoverEntry>>())).Returns(false);
+        _mockLearnerDataAccess.Setup(d => d.LoadLearner(learnerId)).Returns(learnerResponse);
+
+        // Act
+        var result = _learnerService.GetLearner(learnerId, isLearnerArchived: false);
+
+        // Assert
+        Assert.Equal(learnerResponse.Learner, result);
+        _mockLearnerDataAccess.Verify(d => d.LoadLearner(learnerId), Times.Once);
+    }
+
+    [Fact]
+    public void GetLearner_ShouldReturnFailoverLearner_WhenFailoverIsTriggered()
+    {
+        // Arrange
+        int learnerId = 1;
+        var failoverEntries = new List<FailoverEntry> { new FailoverEntry() };
+        var failoverLearnerResponse = new LearnerResponse { IsArchived = false, Learner = new Learner() };
+
+        _mockFailoverRepository.Setup(r => r.GetFailOverEntries()).Returns(failoverEntries);
+        _mockFailoverReviewService.Setup(s => s.DetermineFailover(failoverEntries)).Returns(true);
+        _mockLearnerDataAccess.Setup(d => d.LoadLearner(learnerId)).Returns(failoverLearnerResponse);
+
+        // Act
+        var result = _learnerService.GetLearner(learnerId, isLearnerArchived: false);
+
+        // Assert
+        Assert.Equal(failoverLearnerResponse.Learner, result);
+    }
+
+    [Fact]
+    public void GetLearner_ShouldReturnArchivedLearner_WhenLearnerIsArchivedAfterRetrieval()
+    {
+        // Arrange
+        int learnerId = 1;
+        var learnerResponse = new LearnerResponse { IsArchived = true };
+        var archivedLearner = new Learner();
+        _mockFailoverRepository.Setup(r => r.GetFailOverEntries()).Returns(new List<FailoverEntry>());
+        _mockFailoverReviewService.Setup(s => s.DetermineFailover(It.IsAny<List<FailoverEntry>>())).Returns(false);
+        _mockLearnerDataAccess.Setup(d => d.LoadLearner(learnerId)).Returns(learnerResponse);
+        _mockArchivedDataService.Setup(s => s.GetArchivedLearner(learnerId)).Returns(archivedLearner);
+
+        // Act
+        var result = _learnerService.GetLearner(learnerId, isLearnerArchived: false);
+
+        // Assert
+        Assert.Equal(archivedLearner, result);
+        _mockArchivedDataService.Verify(s => s.GetArchivedLearner(learnerId), Times.Once);
+    }
+
+    [Fact]
+    public void GetLearner_ShouldThrowException_WhenExceptionIsRaised()
+    {
+        // Arrange
+        int learnerId = 1;
+        _mockArchivedDataService.Setup(s => s.GetArchivedLearner(learnerId)).Throws(new Exception("Test Exception"));
+
+        // Act & Assert
+        Assert.Throws<Exception>(() => _learnerService.GetLearner(learnerId, isLearnerArchived: true));
+    }
+}
 }
